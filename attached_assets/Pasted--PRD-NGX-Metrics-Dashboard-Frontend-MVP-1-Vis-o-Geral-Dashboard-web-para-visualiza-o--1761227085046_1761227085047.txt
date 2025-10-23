@@ -1,0 +1,529 @@
+# PRD: NGX Metrics Dashboard - Frontend MVP
+
+## 1. Visão Geral
+
+Dashboard web para visualização de métricas de Facebook Ads de revendas de veículos. O frontend será desenvolvido com dados mockados, preparado para integração futura com Supabase.
+
+**Stack:**
+- Next.js 14 + TypeScript
+- Tailwind CSS
+- Recharts (gráficos)
+- Dados mockados baseados no JSON fornecido
+- Schema preparado para backend
+
+---
+
+## 2. Objetivos
+
+- Criar interface funcional para visualização de métricas
+- Usar dados mockados baseados na estrutura real do Supabase
+- Design responsivo com identidade NGX (dark + verde neon)
+- Preparar estrutura para futura integração com API
+
+---
+
+## 3. Estrutura de Dados
+
+### Schema baseado no JSON fornecido:
+
+```typescript
+// types/metrics.ts
+
+export interface MetricaAnuncio {
+  idx: number;
+  id: string;
+  data_registro: string; // YYYY-MM-DD
+  nome_anuncio: string;
+  link_criativo: string;
+  
+  // Financeiro
+  valor_gasto: string;
+  
+  // Conversão
+  conversas_iniciadas: number;
+  custo_por_conversa: string;
+  
+  // Alcance
+  impressoes: number;
+  alcance: number;
+  frequencia: string;
+  
+  // Cliques
+  cliques_todos: number;
+  cliques_link: number;
+  ctr_todos: string;
+  ctr_link: string;
+  
+  // Custos
+  cpm: string;
+  cpc_todos: string;
+  custo_clique_link: string;
+  
+  // Engajamento
+  engajamento_publicacao: number;
+  visualizacoes_video: number;
+  custo_visualizacao_video: string;
+  
+  created_at: string;
+}
+
+export interface ClienteInfo {
+  nome: string;
+  slug: string;
+  logo_url: string;
+  meta_mensal_conversas?: number;
+  meta_mensal_investimento?: number;
+}
+
+export interface ResumoMetricas {
+  investimento_total: number;
+  conversas_iniciadas: number;
+  custo_medio_conversa: number;
+  impressoes: number;
+  alcance: number;
+  cliques_todos: number;
+  cliques_link: number;
+  ctr_medio: number;
+  cpm_medio: number;
+  cpc_medio: number;
+  frequencia_media: number;
+  engajamento_total: number;
+  visualizacoes_video: number;
+}
+```
+
+---
+
+## 4. Páginas e Componentes
+
+### 4.1 Estrutura de Rotas
+
+```
+/
+├── /[slug]                    # Dashboard do cliente (ex: /saveiculos-dash)
+└── /ngx
+    └── /admin                 # Painel administrativo NGX
+```
+
+### 4.2 Página: Dashboard do Cliente (`/[slug]`)
+
+**Layout:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [Logo Cliente]              SA Veículos    [Período: ▼]     │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────┬──────────────┬──────────────┬───────────┐│
+│  │ INVESTIMENTO │   CONVERSAS  │  IMPRESSÕES  │  ALCANCE  ││
+│  │  R$ 40,09    │      2       │    2.056     │   1.344   ││
+│  │              │ R$ 17,69/conv│  CPM: 19,50  │ CTR: 2,18%││
+│  └──────────────┴──────────────┴──────────────┴───────────┘│
+│                                                              │
+│  💡 Insights Automáticos:                                   │
+│  • AMAROK 3.0 gerou 2 conversas (melhor anúncio)           │
+│  • HILUX SW4 tem CTR de 11% - considere aumentar budget    │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────────┤
+│  │ 📊 Evolução de Conversas (Últimos 30 dias)             ││
+│  │ [Gráfico de linhas]                                     ││
+│  └─────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌─────────────────────────────────────────────────────────┤
+│  │ 🚗 Performance por Veículo                              ││
+│  │ [Gráfico de barras]                                     ││
+│  └─────────────────────────────────────────────────────────┤
+│                                                              │
+│  📋 Anúncios Detalhados                   [🔍 Buscar...]   │
+│  ┌──────────┬──────┬────────┬─────┬─────┬──────┬────────┐│
+│  │ Anúncio  │ Data │ Gasto  │ Conv│ CPC │ Impr.│  CTR   ││
+│  ├──────────┼──────┼────────┼─────┼─────┼──────┼────────┤│
+│  │ AMAROK.. │16/10 │ 35,38  │  2  │0,80 │ 1896 │ 2,32% ││
+│  │ HILUX..  │16/10 │  1,10  │  0  │0,22 │   45 │11,11% ││
+│  └──────────┴──────┴────────┴─────┴─────┴──────┴────────┘│
+│                                                              │
+│  Última atualização: há 2 horas                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Componentes:**
+
+1. **Header**
+   - Logo do cliente (placeholder se não houver)
+   - Nome da empresa
+   - Dropdown de período (Hoje, 7 dias, 30 dias, Mês atual, Mês passado)
+
+2. **Cards de Métricas** (4 cards)
+   - Investimento Total
+   - Conversas Iniciadas (+ custo médio)
+   - Impressões (+ CPM)
+   - Alcance (+ CTR médio)
+
+3. **Card de Insights**
+   - Lista de 2-3 insights automáticos baseados nos dados
+   - Ícones: ✅ (sucesso), 💡 (oportunidade), ⚠️ (atenção)
+
+4. **Gráfico de Evolução**
+   - Linha temporal com investimento e conversas
+   - Tooltip ao hover
+   - Biblioteca: Recharts
+
+5. **Gráfico de Performance por Veículo**
+   - Barras horizontais com top 5 anúncios
+   - Ordenado por conversas
+   - Biblioteca: Recharts
+
+6. **Tabela de Anúncios**
+   - Colunas: Anúncio, Data, Gasto, Conversas, CPC, Impressões, CTR, Ações
+   - Ordenação por coluna
+   - Busca por nome de anúncio
+   - Badge colorido para CTR (verde >2%, amarelo 1-2%, vermelho <1%)
+   - Botão para ver criativo (link externo)
+
+### 4.3 Página: Admin NGX (`/ngx/admin`)
+
+**Layout Simplificado:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ NGX Metrics - Admin                          [+ Novo Cliente]│
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  📊 Clientes Ativos                                         │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ SA Veículos                              🟢 Ativo     │  │
+│  │ /saveiculos-dash                                      │  │
+│  │ Investimento: R$ 40,09  |  Conversas: 2              │  │
+│  │ [Ver Dashboard]                                       │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ AutoPrime Veículos                       🟢 Ativo     │  │
+│  │ /autoprime-dash                                       │  │
+│  │ Investimento: R$ 127,50  |  Conversas: 8             │  │
+│  │ [Ver Dashboard]                                       │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Componentes:**
+
+1. **Lista de Clientes**
+   - Card para cada cliente com resumo
+   - Botão para acessar dashboard do cliente
+   - Status visual (ativo/pausado)
+
+2. **Modal: Novo Cliente** (futuro)
+   - Formulário básico (nome, slug)
+   - Preparado para integração
+
+---
+
+## 5. Design System
+
+### 5.1 Cores
+
+```css
+:root {
+  /* Backgrounds */
+  --bg-primary: #0B0E17;
+  --bg-secondary: #141824;
+  --bg-tertiary: #1E2330;
+  
+  /* Brand */
+  --brand-green: #A3FF12;
+  --brand-green-glow: rgba(163, 255, 18, 0.3);
+  
+  /* Text */
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-tertiary: rgba(255, 255, 255, 0.4);
+  
+  /* Status */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+}
+```
+
+### 5.2 Tipografia
+
+- **Fonte:** Inter (Google Fonts)
+- **Tamanhos:**
+  - H1: 32px / 700
+  - H2: 24px / 600
+  - Body: 14px / 400
+  - Métricas: 28px / 700
+
+### 5.3 Componentes Base
+
+**Card:**
+```tsx
+<div className="bg-bg-secondary border border-white/10 rounded-xl p-6 
+                hover:border-brand-green/20 transition-all">
+  {children}
+</div>
+```
+
+**Button Primary:**
+```tsx
+<button className="bg-gradient-to-r from-brand-green to-[#7BC90D] 
+                   text-bg-primary px-6 py-3 rounded-lg font-semibold
+                   shadow-[0_0_20px_var(--brand-green-glow)]
+                   hover:shadow-[0_0_30px_var(--brand-green-glow)]
+                   hover:-translate-y-0.5 transition-all">
+  {children}
+</button>
+```
+
+---
+
+## 6. Dados Mockados
+
+### Arquivo: `lib/mock-data.ts`
+
+```typescript
+export const mockCliente: ClienteInfo = {
+  nome: "SA Veículos",
+  slug: "saveiculos-dash",
+  logo_url: "/placeholder-logo.png",
+  meta_mensal_conversas: 10,
+  meta_mensal_investimento: 5000
+};
+
+export const mockMetricas: MetricaAnuncio[] = [
+  {
+    idx: 0,
+    id: "8f7e788f-e3d2-4cd4-8f87-ba213cad2fa4",
+    data_registro: "2025-10-16",
+    nome_anuncio: "HILUX SW4 - 23/24",
+    link_criativo: "https://www.facebook.com/317363595530343_1250352540443398",
+    valor_gasto: "1.1",
+    conversas_iniciadas: 0,
+    custo_por_conversa: "0",
+    impressoes: 45,
+    alcance: 39,
+    cliques_todos: 5,
+    cliques_link: 1,
+    ctr_todos: "11.111111",
+    ctr_link: "2.222222",
+    cpm: "24.444444",
+    cpc_todos: "0.22",
+    custo_clique_link: "1.1",
+    frequencia: "1.153846",
+    engajamento_publicacao: 8,
+    visualizacoes_video: 7,
+    custo_visualizacao_video: "0.15714285714285717",
+    created_at: "2025-10-23 11:45:39.410942+00"
+  },
+  // ... outros dados do JSON fornecido
+];
+
+// Função helper para calcular resumo
+export function calcularResumo(metricas: MetricaAnuncio[]): ResumoMetricas {
+  return {
+    investimento_total: metricas.reduce((acc, m) => acc + parseFloat(m.valor_gasto), 0),
+    conversas_iniciadas: metricas.reduce((acc, m) => acc + m.conversas_iniciadas, 0),
+    // ... outros cálculos
+  };
+}
+```
+
+---
+
+## 7. Funcionalidades
+
+### 7.1 Filtro de Período
+
+```typescript
+type Periodo = 'hoje' | '7dias' | '30dias' | 'mes_atual' | 'mes_passado';
+
+function filtrarPorPeriodo(metricas: MetricaAnuncio[], periodo: Periodo) {
+  const hoje = new Date();
+  
+  switch(periodo) {
+    case 'hoje':
+      return metricas.filter(m => m.data_registro === hoje.toISOString().split('T')[0]);
+    case '7dias':
+      // Lógica de filtro
+    // ...
+  }
+}
+```
+
+### 7.2 Insights Automáticos
+
+```typescript
+function gerarInsights(metricas: MetricaAnuncio[]): Insight[] {
+  const insights: Insight[] = [];
+  
+  // Melhor anúncio
+  const melhorAnuncio = metricas.sort((a, b) => 
+    b.conversas_iniciadas - a.conversas_iniciadas
+  )[0];
+  
+  if (melhorAnuncio.conversas_iniciadas > 0) {
+    insights.push({
+      tipo: 'sucesso',
+      mensagem: `${melhorAnuncio.nome_anuncio} gerou ${melhorAnuncio.conversas_iniciadas} conversas`
+    });
+  }
+  
+  // Alto CTR + Baixo alcance
+  const altoCtrbaixoAlcance = metricas.find(m => 
+    parseFloat(m.ctr_todos) > 5 && m.alcance < 100
+  );
+  
+  if (altoCtrbaixoAlcance) {
+    insights.push({
+      tipo: 'oportunidade',
+      mensagem: `${altoCtrbaixoAlcance.nome_anuncio} tem CTR de ${parseFloat(altoCtrbaixoAlcance.ctr_todos).toFixed(2)}% mas alcance limitado`
+    });
+  }
+  
+  return insights;
+}
+```
+
+### 7.3 Preparação para Backend
+
+```typescript
+// hooks/useMetricas.ts
+export function useMetricas(slug: string, periodo: Periodo) {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<MetricaAnuncio[]>([]);
+  
+  useEffect(() => {
+    // MOCKADO - Substituir por fetch real
+    setTimeout(() => {
+      setData(mockMetricas);
+      setLoading(false);
+    }, 500);
+    
+    // FUTURO: Integração real
+    // const { data, error } = await supabase
+    //   .from('metricas_anuncios')
+    //   .select('*')
+    //   .eq('cliente_slug', slug)
+    //   .gte('data_registro', dataInicio)
+    //   .lte('data_registro', dataFim);
+    
+  }, [slug, periodo]);
+  
+  return { data, loading };
+}
+```
+
+---
+
+## 8. Estrutura de Arquivos
+
+```
+src/
+├── app/
+│   ├── [slug]/
+│   │   └── page.tsx              # Dashboard do cliente
+│   ├── ngx/
+│   │   └── admin/
+│   │       └── page.tsx          # Admin NGX
+│   └── layout.tsx
+├── components/
+│   ├── dashboard/
+│   │   ├── MetricCard.tsx
+│   │   ├── InsightCard.tsx
+│   │   ├── ChartEvolution.tsx
+│   │   ├── ChartPerformance.tsx
+│   │   └── TableAnuncios.tsx
+│   ├── admin/
+│   │   └── ClienteCard.tsx
+│   └── ui/
+│       ├── Button.tsx
+│       ├── Card.tsx
+│       └── Select.tsx
+├── lib/
+│   ├── mock-data.ts              # Dados mockados
+│   ├── utils.ts                  # Helpers
+│   └── insights.ts               # Lógica de insights
+├── types/
+│   └── metrics.ts                # TypeScript types
+└── hooks/
+    └── useMetricas.ts            # Hook preparado para API
+```
+
+---
+
+## 9. Responsividade
+
+### Mobile (< 640px)
+- Cards empilhados verticalmente
+- Tabela com scroll horizontal
+- Gráficos adaptados para tela pequena
+- Menu hamburguer
+
+### Tablet (641px - 1024px)
+- Grid 2 colunas para cards
+- Tabela responsiva
+- Gráficos lado a lado
+
+### Desktop (> 1024px)
+- Grid 4 colunas para cards
+- Layout completo
+- Gráficos otimizados
+
+---
+
+## 10. Próximos Passos (Pós-Frontend)
+
+1. **Configurar Supabase:**
+   - Criar tabelas com schema definido
+   - Configurar RLS policies
+   - Setup Supabase Auth
+
+2. **Integrar API:**
+   - Substituir mock data por queries reais
+   - Implementar hook `useMetricas` com Supabase
+   - Adicionar tratamento de erros
+
+3. **Autenticação:**
+   - Implementar magic link
+   - Controle de acesso por cliente
+
+4. **Deploy:**
+   - Vercel para frontend
+   - Variáveis de ambiente Supabase
+
+---
+
+## 11. Comandos para Iniciar
+
+```bash
+# Criar projeto
+npx create-next-app@latest ngx-metrics --typescript --tailwind --app
+
+# Instalar dependências
+npm install recharts lucide-react date-fns
+
+# Estrutura de pastas
+mkdir -p src/{components/{dashboard,admin,ui},lib,types,hooks}
+
+# Rodar desenvolvimento
+npm run dev
+```
+
+---
+
+## 12. Checklist de Entrega
+
+- [ ] Layout base responsivo
+- [ ] 4 cards de métricas funcionais
+- [ ] Gráfico de evolução (Recharts)
+- [ ] Gráfico de performance por veículo
+- [ ] Tabela de anúncios com ordenação
+- [ ] Filtro de período funcional
+- [ ] Sistema de insights automáticos
+- [ ] Página admin com lista de clientes
+- [ ] Dados mockados baseados no JSON real
+- [ ] Types TypeScript definidos
+- [ ] Hooks preparados para integração
+- [ ] Design system NGX implementado
+- [ ] README com instruções
