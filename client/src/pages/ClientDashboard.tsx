@@ -3,11 +3,13 @@ import { useRoute } from "wouter";
 import DashboardHeader from "@/components/DashboardHeader";
 import MetricCard from "@/components/MetricCard";
 import InsightsCard from "@/components/InsightsCard";
+import PerformanceFeedback from "@/components/PerformanceFeedback";
 import EvolutionChart from "@/components/EvolutionChart";
 import PerformanceChart from "@/components/PerformanceChart";
 import AdsTable from "@/components/AdsTable";
 import { DollarSign, MessageSquare, Eye, Users, ShoppingCart, TrendingUp, Percent } from "lucide-react";
 import { mockMetricas, mockClientes, calcularResumo, gerarInsights } from "@/lib/mock-data";
+import { gerarFeedbacks } from "@/lib/performance-feedback";
 
 export default function ClientDashboard() {
   const [, params] = useRoute("/:slug");
@@ -21,6 +23,7 @@ export default function ClientDashboard() {
   
   const resumo = useMemo(() => calcularResumo(metricas, cliente.tipo_negocio), [metricas, cliente.tipo_negocio]);
   const insights = useMemo(() => gerarInsights(metricas), [metricas]);
+  const feedbacks = useMemo(() => gerarFeedbacks(resumo, cliente.tipo_negocio), [resumo, cliente.tipo_negocio]);
   
   //todo: remove mock functionality - generate from real data
   const evolutionData = useMemo(() => {
@@ -118,6 +121,8 @@ export default function ClientDashboard() {
         </div>
 
         <InsightsCard insights={insights} />
+
+        <PerformanceFeedback feedbacks={feedbacks} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <EvolutionChart data={evolutionData} />
