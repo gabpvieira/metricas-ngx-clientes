@@ -1,22 +1,28 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import ClientCard from "@/components/ClientCard";
+import NewClientDialog from "@/components/NewClientDialog";
 import { Plus, LogOut } from "lucide-react";
-import { mockClientes, mockMetricas, calcularResumo } from "@/lib/mock-data";
+import { mockClientes as initialClientes, mockMetricas, calcularResumo } from "@/lib/mock-data";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import type { ClienteInfo } from "@shared/schema";
 
 function AdminPanelContent() {
   const { logout, user } = useAuth();
   const [, setLocation] = useLocation();
-
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
   //todo: remove mock functionality - get clientes from API
-  const clientes = mockClientes;
+  const [clientes, setClientes] = useState<ClienteInfo[]>(initialClientes);
 
   //todo: remove mock functionality - calculate per client from API
   const resumoPorCliente = clientes.map(cliente => {
     const metricasCliente = mockMetricas;
-    const resumo = calcularResumo(metricasCliente);
+    const resumo = calcularResumo(metricasCliente, cliente.tipo_negocio);
     return {
       ...cliente,
       investimento: resumo.investimento_total,
@@ -26,7 +32,24 @@ function AdminPanelContent() {
   });
 
   const handleNovoCliente = () => {
-    console.log('Novo cliente clicked - modal would open here');
+    setDialogOpen(true);
+  };
+
+  const handleSubmitCliente = (data: Omit<ClienteInfo, 'logo_url'>) => {
+    //todo: remove mock functionality - call API to create client
+    const novoCliente: ClienteInfo = {
+      ...data,
+      logo_url: "/placeholder-logo.png"
+    };
+    
+    setClientes([...clientes, novoCliente]);
+    
+    toast({
+      title: "Cliente criado com sucesso!",
+      description: `${data.nome} foi adicionado. Dashboard disponível em /${data.slug}`,
+    });
+    
+    console.log('Cliente criado:', novoCliente);
   };
 
   const handleLogout = () => {
@@ -105,6 +128,12 @@ function AdminPanelContent() {
           </div>
         )}
       </main>
+
+      <NewClientDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSubmit={handleSubmitCliente}
+      />
     </div>
   );
 }

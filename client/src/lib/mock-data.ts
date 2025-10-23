@@ -6,15 +6,19 @@ export const mockClientes: ClienteInfo[] = [
     nome: "SA Veículos",
     slug: "saveiculos-dash",
     logo_url: "/placeholder-logo.png",
+    tipo_negocio: "mensagens",
     meta_mensal_conversas: 10,
-    meta_mensal_investimento: 5000
+    meta_mensal_investimento: 5000,
+    meta_mensal_vendas: 3
   },
   {
     nome: "AutoPrime Veículos",
     slug: "autoprime-dash",
     logo_url: "/placeholder-logo.png",
-    meta_mensal_conversas: 15,
-    meta_mensal_investimento: 8000
+    tipo_negocio: "vendas",
+    meta_mensal_investimento: 8000,
+    meta_mensal_vendas: 5,
+    meta_roi: 300
   }
 ];
 
@@ -143,7 +147,7 @@ export const mockMetricas: MetricaAnuncio[] = [
 ];
 
 //todo: remove mock functionality
-export function calcularResumo(metricas: MetricaAnuncio[]): ResumoMetricas {
+export function calcularResumo(metricas: MetricaAnuncio[], tipoNegocio: 'mensagens' | 'vendas' = 'mensagens'): ResumoMetricas {
   const investimento_total = metricas.reduce((acc, m) => acc + parseFloat(m.valor_gasto), 0);
   const conversas_iniciadas = metricas.reduce((acc, m) => acc + m.conversas_iniciadas, 0);
   const impressoes = metricas.reduce((acc, m) => acc + m.impressoes, 0);
@@ -174,6 +178,15 @@ export function calcularResumo(metricas: MetricaAnuncio[]): ResumoMetricas {
     ? investimento_total / conversas_iniciadas 
     : 0;
   
+  //todo: remove mock functionality - calculate from real sales data
+  const vendas_geradas = tipoNegocio === 'mensagens' 
+    ? Math.floor(conversas_iniciadas * 0.3) // 30% conversion rate for demo
+    : Math.floor(conversas_iniciadas * 0.5); // 50% for sales-focused
+  
+  const ticket_medio = tipoNegocio === 'vendas' ? 50000 : 45000; // mock ticket médio
+  const receita_total = vendas_geradas * ticket_medio;
+  const roi = investimento_total > 0 ? ((receita_total - investimento_total) / investimento_total) * 100 : 0;
+  
   return {
     investimento_total,
     conversas_iniciadas,
@@ -187,7 +200,11 @@ export function calcularResumo(metricas: MetricaAnuncio[]): ResumoMetricas {
     cpc_medio,
     frequencia_media,
     engajamento_total,
-    visualizacoes_video
+    visualizacoes_video,
+    vendas_geradas,
+    receita_total,
+    roi,
+    ticket_medio
   };
 }
 

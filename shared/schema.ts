@@ -43,12 +43,17 @@ export interface MetricaAnuncio {
   created_at: string;
 }
 
+export type TipoNegocio = 'mensagens' | 'vendas';
+
 export interface ClienteInfo {
   nome: string;
   slug: string;
   logo_url: string;
+  tipo_negocio: TipoNegocio;
   meta_mensal_conversas?: number;
   meta_mensal_investimento?: number;
+  meta_mensal_vendas?: number;
+  meta_roi?: number;
 }
 
 export interface ResumoMetricas {
@@ -65,4 +70,8 @@ export interface ResumoMetricas {
   frequencia_media: number;
   engajamento_total: number;
   visualizacoes_video: number;
+  vendas_geradas?: number;
+  receita_total?: number;
+  roi?: number;
+  ticket_medio?: number;
 }

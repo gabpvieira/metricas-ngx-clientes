@@ -6,7 +6,7 @@ import InsightsCard from "@/components/InsightsCard";
 import EvolutionChart from "@/components/EvolutionChart";
 import PerformanceChart from "@/components/PerformanceChart";
 import AdsTable from "@/components/AdsTable";
-import { DollarSign, MessageSquare, Eye, Users } from "lucide-react";
+import { DollarSign, MessageSquare, Eye, Users, ShoppingCart, TrendingUp, Percent } from "lucide-react";
 import { mockMetricas, mockClientes, calcularResumo, gerarInsights } from "@/lib/mock-data";
 
 export default function ClientDashboard() {
@@ -19,7 +19,7 @@ export default function ClientDashboard() {
   //todo: remove mock functionality - filter metricas by period from API
   const metricas = mockMetricas;
   
-  const resumo = useMemo(() => calcularResumo(metricas), [metricas]);
+  const resumo = useMemo(() => calcularResumo(metricas, cliente.tipo_negocio), [metricas, cliente.tipo_negocio]);
   const insights = useMemo(() => gerarInsights(metricas), [metricas]);
   
   //todo: remove mock functionality - generate from real data
@@ -71,24 +71,50 @@ export default function ClientDashboard() {
             subtitle="Total do período"
             icon={DollarSign}
           />
-          <MetricCard
-            title="CONVERSAS"
-            value={resumo.conversas_iniciadas}
-            subtitle={`R$ ${resumo.custo_medio_conversa.toFixed(2)}/conv`}
-            icon={MessageSquare}
-          />
-          <MetricCard
-            title="IMPRESSÕES"
-            value={resumo.impressoes.toLocaleString('pt-BR')}
-            subtitle={`CPM: R$ ${resumo.cpm_medio.toFixed(2)}`}
-            icon={Eye}
-          />
-          <MetricCard
-            title="ALCANCE"
-            value={resumo.alcance.toLocaleString('pt-BR')}
-            subtitle={`CTR: ${resumo.ctr_medio.toFixed(2)}%`}
-            icon={Users}
-          />
+          
+          {cliente.tipo_negocio === 'mensagens' ? (
+            <>
+              <MetricCard
+                title="CONVERSAS"
+                value={resumo.conversas_iniciadas}
+                subtitle={`R$ ${resumo.custo_medio_conversa.toFixed(2)}/conv`}
+                icon={MessageSquare}
+              />
+              <MetricCard
+                title="VENDAS GERADAS"
+                value={resumo.vendas_geradas || 0}
+                subtitle={`${resumo.conversas_iniciadas > 0 ? ((resumo.vendas_geradas || 0) / resumo.conversas_iniciadas * 100).toFixed(1) : 0}% taxa de conversão`}
+                icon={ShoppingCart}
+              />
+              <MetricCard
+                title="ALCANCE"
+                value={resumo.alcance.toLocaleString('pt-BR')}
+                subtitle={`CTR: ${resumo.ctr_medio.toFixed(2)}%`}
+                icon={Users}
+              />
+            </>
+          ) : (
+            <>
+              <MetricCard
+                title="VENDAS"
+                value={resumo.vendas_geradas || 0}
+                subtitle={`R$ ${((resumo.receita_total || 0) / 1000).toFixed(1)}k receita`}
+                icon={ShoppingCart}
+              />
+              <MetricCard
+                title="ROI"
+                value={`${(resumo.roi || 0).toFixed(0)}%`}
+                subtitle={`Ticket: R$ ${((resumo.ticket_medio || 0) / 1000).toFixed(0)}k`}
+                icon={TrendingUp}
+              />
+              <MetricCard
+                title="CONVERSÕES"
+                value={resumo.conversas_iniciadas}
+                subtitle={`${resumo.conversas_iniciadas > 0 ? ((resumo.vendas_geradas || 0) / resumo.conversas_iniciadas * 100).toFixed(1) : 0}% efetivadas`}
+                icon={Percent}
+              />
+            </>
+          )}
         </div>
 
         <InsightsCard insights={insights} />
