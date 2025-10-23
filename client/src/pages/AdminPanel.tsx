@@ -1,9 +1,15 @@
 import { Button } from "@/components/ui/button";
 import ClientCard from "@/components/ClientCard";
-import { Plus } from "lucide-react";
+import { Plus, LogOut } from "lucide-react";
 import { mockClientes, mockMetricas, calcularResumo } from "@/lib/mock-data";
+import { useAuth } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useLocation } from "wouter";
 
-export default function AdminPanel() {
+function AdminPanelContent() {
+  const { logout, user } = useAuth();
+  const [, setLocation] = useLocation();
+
   //todo: remove mock functionality - get clientes from API
   const clientes = mockClientes;
 
@@ -23,6 +29,11 @@ export default function AdminPanel() {
     console.log('Novo cliente clicked - modal would open here');
   };
 
+  const handleLogout = () => {
+    logout();
+    setLocation("/ngx/login");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
@@ -32,16 +43,29 @@ export default function AdminPanel() {
               <h1 className="text-2xl font-bold">
                 <span className="text-primary">NGX</span> Metrics
               </h1>
-              <p className="text-sm text-muted-foreground">Admin</p>
+              <p className="text-sm text-muted-foreground">
+                Admin • {user?.username}
+              </p>
             </div>
-            <Button 
-              onClick={handleNovoCliente}
-              className="hover-elevate"
-              data-testid="button-new-client"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Cliente
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={handleNovoCliente}
+                className="hover-elevate"
+                data-testid="button-new-client"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Cliente
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleLogout}
+                className="hover-elevate"
+                data-testid="button-logout"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -82,5 +106,13 @@ export default function AdminPanel() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function AdminPanel() {
+  return (
+    <ProtectedRoute>
+      <AdminPanelContent />
+    </ProtectedRoute>
   );
 }
