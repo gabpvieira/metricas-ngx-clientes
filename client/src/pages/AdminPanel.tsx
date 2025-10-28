@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import ClientCard from "@/components/ClientCard";
 import NewClientDialog from "@/components/NewClientDialog";
@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { clientService } from '../services/clientService';
 import type { ClienteInfo } from "@shared/schema";
 
 function AdminPanelContent() {
@@ -15,14 +16,43 @@ function AdminPanelContent() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
-  
-  //todo: remove mock functionality - get clientes from API
-  const [clientes, setClientes] = useState<ClienteInfo[]>(initialClientes);
+  const [clientes, setClientes] = useState<ClienteInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  //todo: remove mock functionality - calculate per client from API
+  // Load clients from clientService
+  useEffect(() => {
+    loadClients();
+  }, []);
+
+  const loadClients = async () => {
+    try {
+      setIsLoading(true);
+      console.log('🔄 Carregando clientes...');
+      const result = await clientService.listClients();
+      console.log('📊 Resultado do clientService.listClients():', result);
+      if (result.success && result.data) {
+        console.log('✅ Dados dos clientes recebidos:', result.data);
+        setClientes(result.data);
+      } else {
+        console.log('❌ Falha ao carregar clientes:', result);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar clientes:', error);
+      toast({
+        title: "Erro ao carregar clientes",
+        description: "Não foi possível carregar a lista de clientes.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // TODO: Replace with API call to get metrics for each client
   const resumoPorCliente = clientes.map(cliente => {
-    const metricasCliente = mockMetricas;
-    const resumo = calcularResumo(metricasCliente, cliente.tipo_negocio);
+    const metricas = mockMetricas.filter(m => m.cliente_slug === cliente.slug);
+    const resumo = calcularResumo(metricas);
+    
     return {
       ...cliente,
       investimento: resumo.investimento_total,
@@ -31,25 +61,16 @@ function AdminPanelContent() {
     };
   });
 
+  console.log('👥 Estado atual dos clientes:', clientes);
+  console.log('📋 Resumo por cliente:', resumoPorCliente);
+
   const handleNovoCliente = () => {
     setDialogOpen(true);
   };
 
-  const handleSubmitCliente = (data: Omit<ClienteInfo, 'logo_url'>) => {
-    //todo: remove mock functionality - call API to create client
-    const novoCliente: ClienteInfo = {
-      ...data,
-      logo_url: "/placeholder-logo.png"
-    };
-    
-    setClientes([...clientes, novoCliente]);
-    
-    toast({
-      title: "Cliente criado com sucesso!",
-      description: `${data.nome} foi adicionado. Dashboard disponível em /${data.slug}`,
-    });
-    
-    console.log('Cliente criado:', novoCliente);
+  const handleSubmitCliente = async (data: Omit<ClienteInfo, 'logo_url'>) => {
+    // Reload clients list after successful creation
+    await loadClients();
   };
 
   const handleLogout = () => {
@@ -104,7 +125,7 @@ function AdminPanelContent() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {resumoPorCliente.map((cliente) => (
             <ClientCard
               key={cliente.slug}
@@ -114,6 +135,7 @@ function AdminPanelContent() {
               investimento={cliente.investimento}
               conversas={cliente.conversas}
               status={cliente.status}
+              onDelete={loadClients}
             />
           ))}
         </div>

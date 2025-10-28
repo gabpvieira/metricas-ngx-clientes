@@ -46,14 +46,18 @@ export interface MetricaAnuncio {
 export type TipoNegocio = 'mensagens' | 'vendas';
 
 export interface ClienteInfo {
+  id?: string | number;
   nome: string;
   slug: string;
-  logo_url: string;
+  logo_url?: string;
+  logo?: string;
   tipo_negocio: TipoNegocio;
+  ativo?: boolean;
   meta_mensal_conversas?: number;
   meta_mensal_investimento?: number;
   meta_mensal_vendas?: number;
   meta_roi?: number;
+  data_criacao?: Date;
 }
 
 export interface ResumoMetricas {

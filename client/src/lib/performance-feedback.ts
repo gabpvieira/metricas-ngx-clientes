@@ -50,53 +50,52 @@ export function calcularFeedbackCPL(resumo: ResumoMetricas): PerformanceFeedback
 }
 
 /**
- * Calcula feedback de Performance Geral (CTR, CPC, CPM)
+ * Calcula feedback de Performance baseada em Mensagens e Cliques
  */
 export function calcularFeedbackPerformance(resumo: ResumoMetricas): PerformanceFeedback {
-  const ctr = resumo.ctr_medio;
-  const cpc = resumo.cpc_medio;
-  const cpm = resumo.cpm_medio;
-  const frequencia = resumo.frequencia_media;
+  const conversas = resumo.conversas_iniciadas;
+  const cliques = resumo.cliques_totais || 0;
+  const leads = resumo.vendas_geradas || 0;
 
   let nivel: FeedbackLevel;
   let mensagem: string;
   let valor: string;
 
-  // Regras de performance
-  if (ctr > 3 && cpc < 1.00) {
+  // Análise baseada na relação entre cliques, conversas e leads
+  const taxaConversaoCliques = cliques > 0 ? (conversas / cliques) * 100 : 0;
+  const taxaConversaoLeads = conversas > 0 ? (leads / conversas) * 100 : 0;
+
+  // Baseado na média nacional brasileira: 3,5% a 6,25%
+  if (taxaConversaoLeads >= 6.25) {
     nivel = 'excellent';
-    mensagem = 'Excelente engajamento e custo por clique.';
-    valor = `CTR: ${ctr.toFixed(1)}% | CPC: R$ ${cpc.toFixed(2)}`;
-  } else if (cpm > 30.00 || frequencia > 4) {
-    nivel = 'warning';
-    mensagem = 'Público pode estar saturado.';
-    valor = cpm > 30 
-      ? `CPM: R$ ${cpm.toFixed(2)}` 
-      : `Frequência: ${frequencia.toFixed(1)}`;
-  } else if (ctr < 1 && cpc > 2.00) {
-    nivel = 'critical';
-    mensagem = 'Baixo engajamento e alto custo.';
-    valor = `CTR: ${ctr.toFixed(1)}% | CPC: R$ ${cpc.toFixed(2)}`;
-  } else if (ctr >= 1 && ctr <= 3 && cpc >= 1 && cpc <= 2) {
+    mensagem = 'Taxa de conversão excelente! Acima da média nacional.';
+    valor = `${taxaConversaoLeads.toFixed(1)}% conversão`;
+  } else if (taxaConversaoLeads >= 4.5) {
+    nivel = 'good';
+    mensagem = 'Boa taxa de conversão, dentro da média nacional.';
+    valor = `${taxaConversaoLeads.toFixed(1)}% conversão`;
+  } else if (taxaConversaoLeads >= 3.5) {
     nivel = 'acceptable';
-    mensagem = 'Desempenho dentro da média esperada.';
-    valor = `CTR: ${ctr.toFixed(1)}% | CPC: R$ ${cpc.toFixed(2)}`;
+    mensagem = 'Taxa de conversão aceitável, no limite da média nacional.';
+    valor = `${taxaConversaoLeads.toFixed(1)}% conversão`;
+  } else if (conversas > 0 && leads === 0) {
+    nivel = 'warning';
+    mensagem = 'Gerando conversas mas sem leads efetivos.';
+    valor = `0% conversão`;
+  } else if (taxaConversaoLeads > 0) {
+    nivel = 'warning';
+    mensagem = 'Taxa de conversão abaixo da média nacional (3,5%).';
+    valor = `${taxaConversaoLeads.toFixed(1)}% conversão`;
   } else {
-    // Caso padrão baseado no CTR
-    if (ctr >= 2) {
-      nivel = 'good';
-      mensagem = 'Bom engajamento com o público.';
-    } else {
-      nivel = 'acceptable';
-      mensagem = 'Desempenho aceitável, há espaço para melhorar.';
-    }
-    valor = `CTR: ${ctr.toFixed(1)}% | CPC: R$ ${cpc.toFixed(2)}`;
+    nivel = 'critical';
+    mensagem = 'Sem conversão de leads. Necessário revisar estratégia.';
+    valor = `${taxaConversaoLeads.toFixed(1)}% conversão`;
   }
 
   return {
     tipo: 'performance',
     nivel,
-    titulo: 'Performance Geral',
+    titulo: 'Taxa de Conversão',
     mensagem,
     valor
   };
@@ -115,26 +114,31 @@ export function calcularFeedbackROI(resumo: ResumoMetricas): PerformanceFeedback
   let nivel: FeedbackLevel;
   let mensagem: string;
 
-  if (roi >= 200) {
+  // Nova lógica para ROI em contexto de vendas de veículos (análise mensal)
+  // Para vendas de carros, o ROI deve ser analisado no contexto mensal
+  if (roi >= 300) {
     nivel = 'excellent';
-    mensagem = 'Ótimo retorno sobre investimento!';
-  } else if (roi >= 100) {
+    mensagem = 'Excelente ROI mensal! Estratégia de marketing muito eficiente.';
+  } else if (roi >= 150) {
     nivel = 'good';
-    mensagem = 'Bom retorno, continue assim!';
+    mensagem = 'Bom retorno mensal sobre o investimento em marketing.';
   } else if (roi >= 50) {
     nivel = 'acceptable';
-    mensagem = 'Retorno razoável, há espaço para melhorar.';
+    mensagem = 'ROI mensal aceitável para o setor automotivo.';
+  } else if (roi > 0) {
+    nivel = 'acceptable';
+    mensagem = 'ROI positivo, continue monitorando ao longo do mês.';
   } else {
     nivel = 'warning';
-    mensagem = '⚠️ Retorno muito abaixo do ideal.';
+    mensagem = 'Investimento ainda não gerou retorno positivo este mês.';
   }
 
   return {
     tipo: 'roi',
     nivel,
-    titulo: 'ROI (Retorno sobre Investimento)',
+    titulo: 'ROI Mensal',
     mensagem,
-    valor: `${roi.toFixed(0)}%`
+    valor: `${roi.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}%`
   };
 }
 

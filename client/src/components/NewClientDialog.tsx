@@ -17,7 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { MessageSquare, TrendingUp, Check } from "lucide-react";
+import { MessageSquare, TrendingUp, Check, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { clientService } from '../services/clientService';
 import type { TipoNegocio } from "@shared/schema";
 
 interface NewClientDialogProps {
@@ -42,6 +44,9 @@ export default function NewClientDialog({ open, onOpenChange, onSubmit }: NewCli
   const [metaInvestimento, setMetaInvestimento] = useState("");
   const [metaVendas, setMetaVendas] = useState("");
   const [metaROI, setMetaROI] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { toast } = useToast();
 
   const handleNomeChange = (value: string) => {
     setNome(value);
@@ -55,28 +60,59 @@ export default function NewClientDialog({ open, onOpenChange, onSubmit }: NewCli
     setSlug(autoSlug ? `${autoSlug}-dash` : "");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    onSubmit({
-      nome,
-      slug,
-      tipo_negocio: tipoNegocio,
-      meta_mensal_conversas: metaConversas ? parseInt(metaConversas) : undefined,
-      meta_mensal_investimento: metaInvestimento ? parseFloat(metaInvestimento) : undefined,
-      meta_mensal_vendas: metaVendas ? parseInt(metaVendas) : undefined,
-      meta_roi: metaROI ? parseFloat(metaROI) : undefined,
-    });
+    try {
+      const clientData = {
+        nome,
+        slug,
+        tipo_negocio: tipoNegocio,
+        dashboard_type: tipoNegocio === 'vendas' ? 'vendas' as const : 'leads' as const,
+        meta_mensal_conversas: metaConversas ? parseInt(metaConversas) : undefined,
+        meta_mensal_investimento: metaInvestimento ? parseFloat(metaInvestimento) : undefined,
+        meta_mensal_vendas: metaVendas ? parseInt(metaVendas) : undefined,
+        meta_roi: metaROI ? parseFloat(metaROI) : undefined,
+      };
 
-    // Reset form
-    setNome("");
-    setSlug("");
-    setTipoNegocio("mensagens");
-    setMetaConversas("");
-    setMetaInvestimento("");
-    setMetaVendas("");
-    setMetaROI("");
-    onOpenChange(false);
+      const result = await clientService.createClient(clientData);
+      
+      if (result.success) {
+        toast({
+          title: "Cliente criado com sucesso!",
+          description: `${nome} foi adicionado. Dashboard disponível em /${slug}. Tabelas Supabase criadas automaticamente.`,
+        });
+
+        // Call parent onSubmit for UI updates
+        onSubmit(clientData);
+
+        // Reset form
+        setNome("");
+        setSlug("");
+        setTipoNegocio("mensagens");
+        setMetaConversas("");
+        setMetaInvestimento("");
+        setMetaVendas("");
+        setMetaROI("");
+        onOpenChange(false);
+      } else {
+        toast({
+          title: "Erro ao criar cliente",
+          description: result.error || "Ocorreu um erro inesperado",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao criar cliente:', error);
+      toast({
+        title: "Erro ao criar cliente",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -145,13 +181,16 @@ export default function NewClientDialog({ open, onOpenChange, onSubmit }: NewCli
                   )}
                 </div>
                 <h4 className="font-semibold mb-1">Mensagens / Leads</h4>
-                <p className="text-xs text-muted-foreground">
-                  Focado em quantidade de conversas iniciadas e custo por lead. Ideal para geração de leads.
+                <p className="text-xs text-muted-foreground mb-2">
+                  Para negócios focados em geração de leads e conversas. Ideal para captação de clientes interessados.
                 </p>
-                <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground mb-2">
+                  <strong>Exemplos:</strong> Imobiliárias, consultorias, serviços
+                </div>
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   <li>• Conversas Iniciadas</li>
                   <li>• Custo por Conversa</li>
-                  <li>• Vendas Geradas</li>
+                  <li>• Taxa de Conversão</li>
                 </ul>
               </Card>
 
@@ -173,10 +212,13 @@ export default function NewClientDialog({ open, onOpenChange, onSubmit }: NewCli
                   )}
                 </div>
                 <h4 className="font-semibold mb-1">Vendas / ROI</h4>
-                <p className="text-xs text-muted-foreground">
-                  Focado em vendas efetivadas, receita e retorno sobre investimento (ROI).
+                <p className="text-xs text-muted-foreground mb-2">
+                  Para negócios com vendas diretas e foco em receita. Ideal para e-commerce e revendas.
                 </p>
-                <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground mb-2">
+                  <strong>Exemplos:</strong> SA Veículos, revendas de seminovos, lojas online
+                </div>
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   <li>• Vendas Realizadas</li>
                   <li>• Receita Total</li>
                   <li>• ROI Percentual</li>
@@ -251,16 +293,24 @@ export default function NewClientDialog({ open, onOpenChange, onSubmit }: NewCli
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={isLoading}
               data-testid="button-cancel"
             >
               Cancelar
             </Button>
             <Button 
               type="submit" 
-              disabled={!nome || !slug}
+              disabled={!nome || !slug || isLoading}
               data-testid="button-submit-client"
             >
-              Criar Cliente
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                "Criar Cliente"
+              )}
             </Button>
           </div>
         </form>

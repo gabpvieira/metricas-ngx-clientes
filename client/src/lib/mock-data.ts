@@ -1,15 +1,25 @@
-import type { MetricaAnuncio, ClienteInfo, ResumoMetricas } from "@shared/schema";
+import type { MetricaAnuncio, ClienteInfo, ResumoMetricas } from '../../../shared/schema';
+import { calcularVendasPorPeriodo } from './supabaseData';
 
 //todo: remove mock functionality
 export const mockClientes: ClienteInfo[] = [
   {
     nome: "SA Veículos",
     slug: "saveiculos-dash",
-    logo_url: "/placeholder-logo.png",
-    tipo_negocio: "mensagens",
+    logo_url: "https://i.postimg.cc/jqvCBs2W/logo.png",
+    tipo_negocio: "vendas",
     meta_mensal_conversas: 10,
     meta_mensal_investimento: 5000,
     meta_mensal_vendas: 3
+  },
+  {
+    nome: "Gabriel Seminovos",
+    slug: "gabriel-seminovos",
+    logo_url: "/placeholder-logo.png",
+    tipo_negocio: "vendas",
+    meta_mensal_conversas: 15,
+    meta_mensal_investimento: 6000,
+    meta_mensal_vendas: 4
   },
   {
     nome: "AutoPrime Veículos",
@@ -208,6 +218,75 @@ export function calcularResumo(metricas: MetricaAnuncio[], tipoNegocio: 'mensage
   };
 }
 
+// Nova função para calcular resumo com dados reais de vendas
+export async function calcularResumoComVendasReais(
+  metricas: MetricaAnuncio[], 
+  tipoNegocio: string,
+  clientSlug?: string,
+  dataInicio?: Date,
+  dataFim?: Date
+): Promise<ResumoMetricas> {
+  const investimento_total = metricas.reduce((acc, m) => acc + parseFloat(m.valor_gasto), 0);
+  const conversas_iniciadas = metricas.reduce((acc, m) => acc + m.conversas_iniciadas, 0);
+  const impressoes = metricas.reduce((acc, m) => acc + m.impressoes, 0);
+  const alcance = metricas.reduce((acc, m) => acc + m.alcance, 0);
+  const cliques_todos = metricas.reduce((acc, m) => acc + m.cliques_todos, 0);
+  const cliques_link = metricas.reduce((acc, m) => acc + m.cliques_link, 0);
+  
+  const ctr_medio = metricas.length > 0 
+    ? metricas.reduce((acc, m) => acc + parseFloat(m.ctr_todos), 0) / metricas.length 
+    : 0;
+  
+  const cpm_medio = metricas.length > 0 
+    ? metricas.reduce((acc, m) => acc + parseFloat(m.cpm), 0) / metricas.length 
+    : 0;
+  
+  const cpc_medio = metricas.length > 0 
+    ? metricas.reduce((acc, m) => acc + parseFloat(m.cpc_todos), 0) / metricas.length 
+    : 0;
+  
+  const frequencia_media = metricas.length > 0 
+    ? metricas.reduce((acc, m) => acc + parseFloat(m.frequencia), 0) / metricas.length 
+    : 0;
+  
+  const engajamento_total = metricas.reduce((acc, m) => acc + m.engajamento_publicacao, 0);
+  const visualizacoes_video = metricas.reduce((acc, m) => acc + m.visualizacoes_video, 0);
+  
+  const custo_medio_conversa = conversas_iniciadas > 0 
+    ? investimento_total / conversas_iniciadas 
+    : 0;
+  
+  // Buscar dados reais de vendas do Supabase
+  const vendasData = await calcularVendasPorPeriodo(clientSlug, dataInicio, dataFim);
+  const vendas_geradas = vendasData.total_vendas;
+  const receita_total = vendasData.valor_total;
+  
+  // Calcular ticket médio baseado nas vendas reais
+  const ticket_medio = vendas_geradas > 0 ? receita_total / vendas_geradas : 0;
+  
+  const roi = investimento_total > 0 ? ((receita_total - investimento_total) / investimento_total) * 100 : 0;
+  
+  return {
+    investimento_total,
+    conversas_iniciadas,
+    custo_medio_conversa,
+    impressoes,
+    alcance,
+    cliques_todos,
+    cliques_link,
+    ctr_medio,
+    cpm_medio,
+    cpc_medio,
+    frequencia_media,
+    engajamento_total,
+    visualizacoes_video,
+    vendas_geradas,
+    receita_total,
+    roi,
+    ticket_medio
+  };
+}
+
 //todo: remove mock functionality
 export function gerarInsights(metricas: MetricaAnuncio[]): Array<{
   tipo: 'success' | 'opportunity' | 'warning';
@@ -215,28 +294,117 @@ export function gerarInsights(metricas: MetricaAnuncio[]): Array<{
 }> {
   const insights: Array<{ tipo: 'success' | 'opportunity' | 'warning'; mensagem: string }> = [];
   
+  // Análise do melhor anúncio em conversas
   const melhorAnuncio = [...metricas].sort((a, b) => b.conversas_iniciadas - a.conversas_iniciadas)[0];
   if (melhorAnuncio && melhorAnuncio.conversas_iniciadas > 0) {
     insights.push({
       tipo: 'success',
-      mensagem: `${melhorAnuncio.nome_anuncio.substring(0, 20)}... gerou ${melhorAnuncio.conversas_iniciadas} conversa(s) (melhor anúncio)`
+      mensagem: `Seu melhor anúncio gerou ${melhorAnuncio.conversas_iniciadas} leads qualificados. Continue investindo neste formato para maximizar resultados.`
     });
   }
   
-  const altoCtr = metricas.find(m => parseFloat(m.ctr_todos) > 5);
-  if (altoCtr) {
+  // Análise de oportunidade de crescimento
+  const totalConversas = metricas.reduce((acc, m) => acc + m.conversas_iniciadas, 0);
+  const totalGasto = metricas.reduce((acc, m) => acc + parseFloat(m.valor_gasto), 0);
+  const custoMedioLead = totalGasto / (totalConversas || 1);
+  
+  if (custoMedioLead < 15 && totalConversas > 0) {
     insights.push({
       tipo: 'opportunity',
-      mensagem: `${altoCtr.nome_anuncio.substring(0, 20)}... tem CTR de ${parseFloat(altoCtr.ctr_todos).toFixed(1)}% - considere aumentar budget`
+      mensagem: `Excelente custo por lead (R$ ${custoMedioLead.toFixed(2)}). Recomendamos aumentar o investimento para acelerar a geração de leads.`
     });
   }
   
-  const baixoCtr = metricas.find(m => parseFloat(m.ctr_todos) < 1 && parseFloat(m.valor_gasto) > 10);
-  if (baixoCtr) {
+  // Análise de anúncios com baixo desempenho
+  const anunciosBaixoDesempenho = metricas.filter(m => 
+    parseFloat(m.valor_gasto) > 20 && m.conversas_iniciadas === 0
+  );
+  
+  if (anunciosBaixoDesempenho.length > 0) {
     insights.push({
       tipo: 'warning',
-      mensagem: `${baixoCtr.nome_anuncio.substring(0, 20)}... tem CTR baixo (${parseFloat(baixoCtr.ctr_todos).toFixed(1)}%) - revisar criativo`
+      mensagem: `${anunciosBaixoDesempenho.length} anúncio(s) gastaram sem gerar leads. Vamos otimizar estes criativos para melhorar seu ROI.`
     });
+  }
+  
+  return insights;
+}
+
+// Nova função para gerar insights baseados apenas em dados consolidados do período
+export function gerarInsightsConsolidados(resumo: ResumoMetricas, tipoNegocio: 'mensagens' | 'vendas' = 'mensagens'): Array<{
+  tipo: 'success' | 'opportunity' | 'warning';
+  mensagem: string;
+}> {
+  const insights: Array<{ tipo: 'success' | 'opportunity' | 'warning'; mensagem: string }> = [];
+  
+  // Análise de performance geral baseada no CPL
+  if (resumo.conversas_iniciadas > 0) {
+    const cpl = resumo.custo_medio_conversa;
+    
+    if (cpl <= 15) {
+      insights.push({
+        tipo: 'success',
+        mensagem: `Excelente custo por lead de R$ ${cpl.toFixed(2)}. Sua estratégia está gerando leads de forma eficiente no período.`
+      });
+    } else if (cpl <= 25) {
+      insights.push({
+        tipo: 'opportunity',
+        mensagem: `Custo por lead de R$ ${cpl.toFixed(2)} está dentro da média. Há oportunidade de otimização para reduzir custos.`
+      });
+    } else {
+      insights.push({
+        tipo: 'warning',
+        mensagem: `Custo por lead elevado de R$ ${cpl.toFixed(2)}. Recomendamos revisar a estratégia de segmentação e criativos.`
+      });
+    }
+  } else {
+    insights.push({
+      tipo: 'warning',
+      mensagem: `Nenhuma conversa foi gerada no período com investimento de R$ ${resumo.investimento_total.toFixed(2)}. É necessário revisar a estratégia.`
+    });
+  }
+  
+  // Análise de CTR (Click Through Rate)
+  if (resumo.ctr_medio > 0) {
+    if (resumo.ctr_medio >= 3) {
+      insights.push({
+        tipo: 'success',
+        mensagem: `CTR excelente de ${resumo.ctr_medio.toFixed(2)}%. Seus anúncios estão gerando alto engajamento no período.`
+      });
+    } else if (resumo.ctr_medio >= 1.5) {
+      insights.push({
+        tipo: 'opportunity',
+        mensagem: `CTR de ${resumo.ctr_medio.toFixed(2)}% está na média. Considere testar novos criativos para aumentar o engajamento.`
+      });
+    } else {
+      insights.push({
+        tipo: 'warning',
+        mensagem: `CTR baixo de ${resumo.ctr_medio.toFixed(2)}%. Recomendamos revisar os criativos e textos dos anúncios.`
+      });
+    }
+  }
+  
+  // Análise específica para tipo vendas (ROI)
+  if (tipoNegocio === 'vendas' && resumo.receita_total && resumo.vendas_geradas) {
+    const lucroEstimado = resumo.receita_total * 0.08; // 8% de margem
+    const roi = ((lucroEstimado - resumo.investimento_total) / resumo.investimento_total) * 100;
+    
+    if (roi > 50) {
+      insights.push({
+        tipo: 'success',
+        mensagem: `ROI excelente de ${roi.toFixed(1)}% no período. Continue investindo para maximizar os resultados.`
+      });
+    } else if (roi > 0) {
+      insights.push({
+        tipo: 'opportunity',
+        mensagem: `ROI positivo de ${roi.toFixed(1)}%. Há potencial para otimizar e aumentar a rentabilidade.`
+      });
+    } else {
+      insights.push({
+        tipo: 'warning',
+        mensagem: `ROI negativo de ${roi.toFixed(1)}%. É necessário revisar a estratégia para melhorar a rentabilidade.`
+      });
+    }
   }
   
   return insights;

@@ -18,17 +18,14 @@ export default function DashboardHeader({
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-card border border-card-border flex items-center justify-center overflow-hidden">
+          <div className="flex items-center">
+            <div className="h-12 rounded-lg bg-card border border-card-border flex items-center justify-center overflow-hidden px-4">
               {logoUrl ? (
-                <img src={logoUrl} alt={`${clientName} logo`} className="w-full h-full object-contain" />
+                <img src={logoUrl} alt={`${clientName} logo`} className="h-full object-contain" />
               ) : (
                 <Building2 className="w-5 h-5 text-muted-foreground" />
               )}
             </div>
-            <h1 className="text-xl font-bold" data-testid="text-client-name">
-              {clientName}
-            </h1>
           </div>
           
           <div className="flex items-center gap-3">

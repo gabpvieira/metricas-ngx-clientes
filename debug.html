@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <div id="debug-info"></div>
+    
+    <script>
+        console.log('🔍 Debug script carregado');
+        document.getElementById('debug-info').innerHTML = 'JavaScript funcionando!';
+        
+        // Testar fetch para o servidor
+        fetch('http://localhost:5000/')
+            .then(response => {
+                console.log('✅ Servidor respondeu:', response.status);
+                return response.text();
+            })
+            .then(html => {
+                console.log('📄 HTML recebido (primeiros 200 chars):', html.substring(0, 200));
+            })
+            .catch(error => {
+                console.error('❌ Erro ao conectar com servidor:', error);
+            });
+    </script>
+</body>
+</html>

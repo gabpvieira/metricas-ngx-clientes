@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Console</title>
+</head>
+<body>
+    <h1>Test Console</h1>
+    <div id="output"></div>
+    
+    <script>
+        console.log('🔥 JavaScript está funcionando!');
+        
+        // Teste de fetch para o servidor
+        fetch('http://localhost:5000/')
+            .then(response => {
+                console.log('✅ Servidor respondeu:', response.status);
+                document.getElementById('output').innerHTML = `
+                    <p>✅ Servidor respondeu: ${response.status}</p>
+                    <p>🔥 JavaScript funcionando!</p>
+                `;
+            })
+            .catch(error => {
+                console.error('❌ Erro ao conectar com servidor:', error);
+                document.getElementById('output').innerHTML = `
+                    <p>❌ Erro: ${error.message}</p>
+                `;
+            });
+    </script>
+</body>
+</html>

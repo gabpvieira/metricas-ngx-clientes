@@ -11,23 +11,23 @@ interface MetricCardProps {
 
 export default function MetricCard({ title, value, subtitle, icon: Icon, trend }: MetricCardProps) {
   return (
-    <Card className="p-6 hover-elevate" data-testid={`card-metric-${title.toLowerCase().replace(/\s+/g, '-')}`}>
-      <div className="flex items-start justify-between mb-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <Card className="p-4 hover-elevate" data-testid={`card-metric-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground leading-tight">
           {title}
         </p>
         {Icon && (
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Icon className="w-4 h-4 text-primary" />
+          <div className="p-1.5 rounded-md bg-primary/10 flex-shrink-0">
+            <Icon className="w-3.5 h-3.5 text-primary" />
           </div>
         )}
       </div>
-      <div className="space-y-1">
-        <p className="text-[28px] font-bold text-foreground" data-testid={`text-metric-value-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <div className="space-y-0.5">
+        <p className="text-xl font-bold text-foreground leading-tight" data-testid={`text-metric-value-${title.toLowerCase().replace(/\s+/g, '-')}`}>
           {value}
         </p>
         {subtitle && (
-          <p className="text-sm text-muted-foreground" data-testid={`text-metric-subtitle-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+          <p className="text-xs text-muted-foreground leading-tight" data-testid={`text-metric-subtitle-${title.toLowerCase().replace(/\s+/g, '-')}`}>
             {subtitle}
           </p>
         )}

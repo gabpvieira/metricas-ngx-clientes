@@ -8,14 +8,17 @@ import NotFound from "@/pages/not-found";
 import ClientDashboard from "@/pages/ClientDashboard";
 import AdminPanel from "@/pages/AdminPanel";
 import LoginPage from "@/pages/LoginPage";
+import HomePage from "@/pages/HomePage";
 
 function Router() {
+  console.log('🔄 Router renderizado, URL atual:', window.location.pathname);
   return (
     <Switch>
-      <Route path="/ngx/login" component={LoginPage} />
-      <Route path="/ngx/admin" component={AdminPanel} />
-      <Route path="/:slug" component={ClientDashboard} />
-      <Route component={NotFound} />
+      <Route path="/ngx/login" component={() => { console.log('📍 Rota /ngx/login ativada'); return <LoginPage />; }} />
+      <Route path="/ngx/admin" component={() => { console.log('📍 Rota /ngx/admin ativada'); return <AdminPanel />; }} />
+      <Route path="/" component={() => { console.log('📍 Rota / ativada'); return <HomePage />; }} />
+      <Route path="/:slug" component={() => { console.log('📍 Rota /:slug ativada'); return <ClientDashboard />; }} />
+      <Route component={() => { console.log('📍 Rota NotFound ativada'); return <NotFound />; }} />
     </Switch>
   );
 }
