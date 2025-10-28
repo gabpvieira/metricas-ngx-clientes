@@ -1,9 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config({ path: '.env.local' });
-dotenv.config({ path: '.env.production' });
+// Load environment variables based on NODE_ENV
+const isProduction = process.env.NODE_ENV === 'production';
+const envFile = isProduction ? '.env.production' : '.env.local';
+
+console.log(`[ENV] Loading environment from: ${envFile} (NODE_ENV: ${process.env.NODE_ENV})`);
+dotenv.config({ path: envFile });
 
 // Supabase configuration from environment variables
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://eoxlbkdsilnaxqpmuqfb.supabase.co';
@@ -126,17 +129,24 @@ export async function executeSupabaseQuery(projectRef: string, query: string): P
   try {
     console.log('Executing Supabase query:', query);
     
-    // First try MCP approach
+    // Check environment - only use MCP in development
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    if (isProduction) {
+      console.log('[PRODUCTION] Using direct Supabase client');
+      return await handleDirectQuery(query);
+    }
+    
+    // Development mode - try MCP first, then fallback
+    console.log('[DEVELOPMENT] Trying MCP approach first');
     const mcpResult = await executeMCPQuery(projectRef, query);
     
     if (mcpResult.success) {
-      console.log('MCP query successful:', mcpResult.data);
+      console.log('[MCP] Query successful:', mcpResult.data);
       return mcpResult.data;
     }
     
-    console.log('MCP query failed, trying fallback:', mcpResult.error);
-    
-    // Fallback to direct queries for known patterns
+    console.log('[MCP] Query failed, using direct client fallback:', mcpResult.error);
     return await handleDirectQuery(query);
     
   } catch (error) {
