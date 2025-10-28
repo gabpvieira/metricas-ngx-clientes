@@ -1,38 +1,148 @@
 import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
 
-// Supabase configuration
-const SUPABASE_URL = 'https://eoxlbkdsilnaxqpmuqfb.supabase.co';
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVveGxia2RzaWxuYXhxcG11cWZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMjcyNTMsImV4cCI6MjA3NjgwMzI1M30.NmTTGiGn1uMAdEtwnOJ6KGgS7ZR_abZX2etOKCOrWRE";
+// Load environment variables
+dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env.production' });
 
-// Create Supabase client
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase configuration from environment variables
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://eoxlbkdsilnaxqpmuqfb.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVveGxia2RzaWxuYXhxcG11cWZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMjcyNTMsImV4cCI6MjA3NjgwMzI1M30.NmTTGiGn1uMAdEtwnOJ6KGgS7ZR_abZX2etOKCOrWRE";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'eoxlbkdsilnaxqpmuqfb';
+
+// Create Supabase client with service role for admin operations
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY);
+
+// MCP Supabase integration functions
+interface MCPSupabaseResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+}
+
+async function executeMCPQuery(projectRef: string, query: string): Promise<MCPSupabaseResponse> {
+  try {
+    console.log(`[MCP] Executing query on project ${projectRef}:`, query);
+    
+    // Here we would normally call the MCP Supabase functions
+    // For now, we'll use direct Supabase client calls
+    
+    // Parse the query to determine the operation
+    const queryLower = query.toLowerCase().trim();
+    
+    if (queryLower.startsWith('select')) {
+      return await handleSelectQuery(query);
+    } else if (queryLower.startsWith('insert')) {
+      return await handleInsertQuery(query);
+    } else if (queryLower.startsWith('update')) {
+      return await handleUpdateQuery(query);
+    } else if (queryLower.startsWith('delete')) {
+      return await handleDeleteQuery(query);
+    } else {
+      return {
+        success: false,
+        error: 'Unsupported query type'
+      };
+    }
+  } catch (error) {
+    console.error('[MCP] Query execution error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// Query handler functions
+async function handleSelectQuery(query: string): Promise<MCPSupabaseResponse> {
+  try {
+    // Extract table name from query
+    const tableMatch = query.match(/FROM\s+(?:public\.)?(\w+)/i);
+    if (!tableMatch) {
+      return { success: false, error: 'Could not extract table name from query' };
+    }
+    
+    const tableName = tableMatch[1];
+    console.log(`[MCP] Executing SELECT on table: ${tableName}`);
+    
+    // Handle specific table queries
+    if (tableName === 'configuracoes') {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('*')
+        .eq('ativo', true)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return { success: true, data: data || [] };
+    }
+    
+    // Handle dashboard tables
+    if (tableName.startsWith('dash_')) {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      
+      if (error) throw error;
+      return { success: true, data: data || [] };
+    }
+    
+    // Generic table query
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*')
+      .limit(100);
+    
+    if (error) throw error;
+    return { success: true, data: data || [] };
+    
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'SELECT query failed' 
+    };
+  }
+}
+
+async function handleInsertQuery(query: string): Promise<MCPSupabaseResponse> {
+  // For now, return not implemented
+  return { success: false, error: 'INSERT queries not implemented yet' };
+}
+
+async function handleUpdateQuery(query: string): Promise<MCPSupabaseResponse> {
+  // For now, return not implemented
+  return { success: false, error: 'UPDATE queries not implemented yet' };
+}
+
+async function handleDeleteQuery(query: string): Promise<MCPSupabaseResponse> {
+  // For now, return not implemented
+  return { success: false, error: 'DELETE queries not implemented yet' };
+}
 
 export async function executeSupabaseQuery(projectRef: string, query: string): Promise<any> {
   try {
     console.log('Executing Supabase query:', query);
     
-    // Execute raw SQL query using Supabase RPC
-    const { data, error } = await supabase.rpc('execute_sql', { 
-      sql_query: query 
-    });
-
-    if (error) {
-      console.error('Supabase query error:', error);
-      
-      // If RPC doesn't exist, try direct table queries for known patterns
-      if (error.message?.includes('function execute_sql') || error.code === 'PGRST202') {
-        return await handleDirectQuery(query);
-      }
-      
-      throw error;
+    // First try MCP approach
+    const mcpResult = await executeMCPQuery(projectRef, query);
+    
+    if (mcpResult.success) {
+      console.log('MCP query successful:', mcpResult.data);
+      return mcpResult.data;
     }
-
-    console.log('Supabase query result:', data);
-    return data;
+    
+    console.log('MCP query failed, trying fallback:', mcpResult.error);
+    
+    // Fallback to direct queries for known patterns
+    return await handleDirectQuery(query);
+    
   } catch (error) {
     console.error('Error executing Supabase query:', error);
     
-    // Fallback to direct queries for known patterns
+    // Final fallback to direct queries
     try {
       return await handleDirectQuery(query);
     } catch (fallbackError) {
