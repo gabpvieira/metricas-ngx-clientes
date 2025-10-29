@@ -1,7 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { executeSupabaseQuery } from './mcp-integration';
+const { VercelRequest, VercelResponse } = require('@vercel/node');
+const { executeSupabaseQuery } = require('./mcp-integration');
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req: VercelRequest, res: VercelResponse) {
   console.log(`[VERCEL API] ${req.method} ${req.url}`);
   console.log(`[VERCEL API] Environment check:`, {
     NODE_ENV: process.env.NODE_ENV,

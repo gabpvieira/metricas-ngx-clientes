@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 // Supabase configuration from environment variables (Vercel)
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://eoxlbkdsilnaxqpmuqfb.supabase.co';
@@ -28,7 +28,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 /**
  * Execute a direct query on Supabase
  */
-export async function executeSupabaseQuery(projectRef: string, query: string): Promise<any> {
+async function executeSupabaseQuery(projectRef: string, query: string): Promise<any> {
   try {
     console.log(`[VERCEL] Executing query for project ${projectRef}:`, query);
     
@@ -150,3 +150,5 @@ async function handleDirectQuery(query: string): Promise<any> {
     return [];
   }
 }
+
+module.exports = { executeSupabaseQuery };
