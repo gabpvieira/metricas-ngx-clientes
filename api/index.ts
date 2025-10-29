@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { executeSupabaseQuery } from '../server/mcp-integration';
+import { executeSupabaseQuery } from './mcp-integration';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
