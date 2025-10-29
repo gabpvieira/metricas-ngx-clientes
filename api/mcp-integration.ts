@@ -79,10 +79,19 @@ async function handleDirectQuery(query: string): Promise<any> {
     // Special handling for dash_ tables
     if (tableName.startsWith('dash_')) {
       console.log(`[VERCEL] Handling dash table query: ${tableName}`);
+      
+      // Determine the correct order column based on table type
+      let orderColumn = 'created_at';
+      if (tableName.includes('_rows')) {
+        orderColumn = 'data_registro';
+      } else if (tableName.includes('_vendas')) {
+        orderColumn = 'data_venda';
+      }
+      
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
-        .order('created_at', { ascending: false })
+        .order(orderColumn, { ascending: false })
         .limit(100);
       
       if (error) {
@@ -90,8 +99,28 @@ async function handleDirectQuery(query: string): Promise<any> {
         throw error;
       }
       
-      console.log(`[VERCEL] ${tableName} query result:`, data);
+      console.log(`[VERCEL] ${tableName} query result:`, data?.length, 'records');
       return data || [];
+    }
+    
+    // Handle COUNT queries for dash tables
+    if (query.includes('COUNT(*)') && query.includes('dash_')) {
+      const tableMatch = query.match(/FROM\s+(?:public\.)?(\w+)/i);
+      if (tableMatch) {
+        const tableName = tableMatch[1];
+        console.log(`[VERCEL] Executing COUNT query for table: ${tableName}`);
+        const { count, error } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) {
+          console.error(`[VERCEL] COUNT ${tableName} query error:`, error);
+          throw error;
+        }
+        
+        console.log(`[VERCEL] COUNT result for ${tableName}:`, count);
+        return [{ count: count || 0 }];
+      }
     }
     
     // For other queries, try to execute directly using RPC

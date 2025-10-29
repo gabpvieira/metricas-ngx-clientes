@@ -195,9 +195,11 @@ async function handleDirectQuery(query: string): Promise<any> {
   
   // Handle dashboard data queries
   if (query.includes('dash_') && query.includes('_rows')) {
-    const tableMatch = query.match(/FROM\s+public\.(\w+)/i);
+    // Try to match with or without 'public.' prefix
+    const tableMatch = query.match(/FROM\s+(?:public\.)?(\w+)/i);
     if (tableMatch) {
       const tableName = tableMatch[1];
+      console.log(`Executing query for dash table: ${tableName}`);
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
@@ -209,15 +211,18 @@ async function handleDirectQuery(query: string): Promise<any> {
         throw error;
       }
       
+      console.log(`Query result for ${tableName}:`, data?.length, 'records');
       return data || [];
     }
   }
   
   // Handle vendas table queries
   if (query.includes('dash_') && query.includes('_vendas')) {
-    const tableMatch = query.match(/FROM\s+public\.(\w+)/i);
+    // Try to match with or without 'public.' prefix
+    const tableMatch = query.match(/FROM\s+(?:public\.)?(\w+)/i);
     if (tableMatch) {
       const tableName = tableMatch[1];
+      console.log(`Executing query for vendas table: ${tableName}`);
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
@@ -229,7 +234,28 @@ async function handleDirectQuery(query: string): Promise<any> {
         throw error;
       }
       
+      console.log(`Query result for ${tableName}:`, data?.length, 'records');
       return data || [];
+    }
+  }
+  
+  // Handle COUNT queries for dash tables
+  if (query.includes('COUNT(*)') && query.includes('dash_')) {
+    const tableMatch = query.match(/FROM\s+(?:public\.)?(\w+)/i);
+    if (tableMatch) {
+      const tableName = tableMatch[1];
+      console.log(`Executing COUNT query for table: ${tableName}`);
+      const { count, error } = await supabase
+        .from(tableName)
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) {
+        console.error(`Direct COUNT ${tableName} query error:`, error);
+        throw error;
+      }
+      
+      console.log(`COUNT result for ${tableName}:`, count);
+      return [{ count: count || 0 }];
     }
   }
   
