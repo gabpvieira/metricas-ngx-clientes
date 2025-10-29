@@ -1,11 +1,11 @@
-import { ClienteInfo } from '../../../shared/schema';
+import { ClienteInfo, TipoNegocio } from '../../../shared/schema';
 import { supabaseService } from '../services/supabaseService';
 
 // Interfaces para o serviço de clientes
 export interface CreateClientRequest {
   nome: string;
   slug: string;
-  tipo_negocio: 'concessionaria' | 'loja_carros' | 'multimarca' | 'mensagens' | 'vendas';
+  tipo_negocio: TipoNegocio;
   dashboard_type?: 'leads' | 'vendas';
   logo?: string;
   meta_mensal_conversas?: number;
@@ -31,6 +31,7 @@ export interface AuditLog {
 }
 
 export class ClientService {
+  private readonly STORAGE_KEY = 'ngx-clientes';
   private auditLogs: AuditLog[] = [];
 
   private logAction(action: string, clientSlug: string, details: any, success: boolean, error?: string) {
@@ -362,23 +363,21 @@ export class ClientService {
 
       const existingClients: ClienteInfo[] = [];
 
-      for (const slug of clientSlugs) {
+      for (const slug of Array.from(clientSlugs)) {
         // Mapeia slugs conhecidos para informações específicas
         if (slug === 'sa_veiculos') {
           existingClients.push({
             id: 'sa-veiculos-existing',
             nome: 'SA Veículos',
             slug: 'saveiculos-dash', // Slug usado no dashboard
-            tipo_negocio: 'concessionaria',
+            tipo_negocio: 'vendas',
             logo: '🚗',
             ativo: true,
             data_criacao: new Date('2024-01-01'), // Data estimada
-            meta: {
-              objetivo_conversas: 100,
-              meta_cpl: 50,
-              meta_ctr: 2.5,
-              meta_roi: 300
-            }
+            meta_mensal_conversas: 100,
+            meta_mensal_investimento: 5000,
+            meta_mensal_vendas: 10,
+            meta_roi: 300
           });
         } else {
           // Para outros clientes detectados, cria uma entrada genérica
@@ -386,15 +385,14 @@ export class ClientService {
             id: `${slug}-existing`,
             nome: slug.charAt(0).toUpperCase() + slug.slice(1).replace(/_/g, ' '),
             slug: slug.replace(/_/g, '-'),
-            tipo_negocio: 'loja_carros',
+            tipo_negocio: 'mensagens',
             logo: '🏢',
             ativo: true,
             data_criacao: new Date(),
-            meta: {
-              objetivo_conversas: 50,
-              meta_cpl: 30,
-              meta_ctr: 2.0
-            }
+            meta_mensal_conversas: 50,
+            meta_mensal_investimento: 3000,
+            meta_mensal_vendas: 5,
+            meta_roi: 200
           });
         }
       }

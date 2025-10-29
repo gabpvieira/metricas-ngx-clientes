@@ -54,7 +54,7 @@ export function calcularFeedbackCPL(resumo: ResumoMetricas): PerformanceFeedback
  */
 export function calcularFeedbackPerformance(resumo: ResumoMetricas): PerformanceFeedback {
   const conversas = resumo.conversas_iniciadas;
-  const cliques = resumo.cliques_totais || 0;
+  const cliques = resumo.cliques_todos || 0;
   const leads = resumo.vendas_geradas || 0;
 
   let nivel: FeedbackLevel;

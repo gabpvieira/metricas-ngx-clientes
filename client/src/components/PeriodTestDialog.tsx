@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { calcularPeriodo } from '@/lib/dateUtils';
-import { fetchMetricasBySlug, calcularVendasPorPeriodo } from '@/lib/supabaseData';
+import { fetchMetricasBySlug, calcularVendasPorPeriodo, fetchVendasBySlug } from '@/lib/supabaseData';
 
 interface PeriodTestDialogProps {
   clientSlug: string;
@@ -18,23 +18,31 @@ export default function PeriodTestDialog({ clientSlug }: PeriodTestDialogProps) 
   const testPeriod = async () => {
     setIsLoading(true);
     try {
-      const { dataInicio, dataFim } = calcularPeriodo(selectedPeriod);
+      // Converter number para string baseado no período selecionado
+      const periodString = selectedPeriod === 0 ? 'hoje' : 
+                          selectedPeriod === 7 ? '7dias' : 
+                          selectedPeriod === 30 ? '30dias' : 
+                          selectedPeriod === 90 ? '90dias' : '30dias';
+      const { dataInicio, dataFim } = calcularPeriodo(periodString);
       
       // Buscar métricas
       const metricas = await fetchMetricasBySlug(clientSlug, dataInicio, dataFim);
       
-      // Buscar vendas
-      const vendas = await calcularVendasPorPeriodo(clientSlug, dataInicio, dataFim);
+      // Buscar vendas (array de vendas)
+      const vendasArray = await fetchVendasBySlug(clientSlug, dataInicio, dataFim);
+      
+      // Calcular totais de vendas
+      const vendasTotais = await calcularVendasPorPeriodo(clientSlug, dataInicio, dataFim);
       
       setTestResults({
         periodo: selectedPeriod,
         dataInicio: dataInicio.toISOString().split('T')[0],
         dataFim: dataFim.toISOString().split('T')[0],
         totalMetricas: metricas.length,
-        totalVendas: vendas.length,
-        receitaTotal: vendas.reduce((sum, venda) => sum + parseFloat(venda.valor_veiculo), 0),
+        totalVendas: vendasTotais.total_vendas,
+        receitaTotal: vendasTotais.valor_total,
         metricas: metricas.slice(0, 3), // Primeiras 3 métricas
-        vendas: vendas.slice(0, 3) // Primeiras 3 vendas
+        vendas: vendasArray.slice(0, 3) // Primeiras 3 vendas
       });
     } catch (error) {
       console.error('Erro ao testar período:', error);

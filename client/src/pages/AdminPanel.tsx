@@ -50,7 +50,9 @@ function AdminPanelContent() {
 
   // TODO: Replace with API call to get metrics for each client
   const resumoPorCliente = clientes.map(cliente => {
-    const metricas = mockMetricas.filter(m => m.cliente_slug === cliente.slug);
+    // Por enquanto usando todas as métricas mock para cada cliente
+    // Em produção, filtrar por cliente específico
+    const metricas = mockMetricas; // Remover filtro por cliente_slug que não existe
     const resumo = calcularResumo(metricas);
     
     return {
